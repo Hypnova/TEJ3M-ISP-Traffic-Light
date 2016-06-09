@@ -33,9 +33,9 @@ const int IR_SENSOR = A2;
 
 int ldrValue;
 
-unsigned long currentTime;
+unsigned long currentTime, timeTurned;
 
-bool armTurned = false;
+bool armTurned = 0;
 
 long multiplier = 1;
 
@@ -58,6 +58,9 @@ int getLDR() {
     return analogRead(LDR_PIN);
 }
 
+int getArm (){
+    return ARM_SERVO.read();
+}
 void on(int LED) {
     digitalWrite (LED, HIGH);
 }
@@ -67,6 +70,7 @@ void off(int LED) {
 }
 
 void turnArm(bool direction) {
+  while (90 * direction)
     ARM_SERVO.write(90 * direction);
 }
 
@@ -114,7 +118,7 @@ void setup() {
     pinMode(IR_SENSOR, INPUT);
 
     ARM_SERVO.attach(6);
-
+    ARM_SERVO.write(0);
     Serial.begin (9600);
 }
 
@@ -123,12 +127,11 @@ void setup() {
 */
 void loop () {
     currentTime = millis();
-    int timeTurned = 0;
     ldrValue = getLDR();
 
 
 
-    Serial.println(currentTime - timeTurned);
+    Serial.println(getArm());
 
     //Turns on the street light
     if(ldrValue < 70) {
@@ -141,23 +144,20 @@ void loop () {
     if (currentTime >= 20 * multiplier) {
         loopTimer++;
         multiplier++;
+    } 
+    if (getArm() == 0 && getIR() < 2 ){
+      turnArm(true);
+      timeTurned = currentTime;
     }
-    if (getIR() <= 5 && armTurned == false) {
-        turnArm(true);
-        armTurned = true;
-        timeTurned = loopTimer;
-    }
-    if (getIR() > 5 && armTurned == true) {
-        turnArm(false);
-        armTurned = false;
+    else if (getIR() >= 2 && currentTime - timeTurned >= 3000){
+      turnArm(false);
     }
     
     if(loopTimer  > 600) {
         loopTimer = 0;
     }
-
     if (getBUTTON() == HIGH && getRED_LIGHT_2() == HIGH) {
-        loopTimer += (300-loopTimer)/1000;
+        loopTimer += (300-loopTimer)/250;
     }
 
     if (loopTimer >= 0 && loopTimer < 300) {
