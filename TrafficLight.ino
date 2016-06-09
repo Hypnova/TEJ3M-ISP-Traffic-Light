@@ -1,55 +1,88 @@
+
 /*
-* Three light test.
-* May 20, 2016.
+* ISP FINAL CODE
+* June 2, 2016.
 */
 
 //-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+#include <Servo.h>
+#include <math.h>
+
+Servo ARM_SERVO;
 
 //LED declaration
-const int RL1 = 13,
-          YL1 = 12,
-          GL1 = 11;
+const int RED_LIGHT_1 = 13,
+          YELLOW_LIGHT_1 = 12,
+          GREEN_LIGHT_1 = 11;
 
-const int RL3 = 10,
-          YL3 = 9,
-          GL3 = 8;
+const int RED_LIGHT_2 = 10,
+          YELLOW_LIGHT_2 = 9,
+          GREEN_LIGHT_2 = 8;
 
-const int PL1 = 7;
+const int PEDESTRIAN_LIGHT_RED = 7,
+          PEDESTRIAN_LIGHT_GREEN = 2,
+          STREET_LIGHT = 4,
+          BUTTON_OUTPUT = 3;
 
-//Time variable declaration
-unsigned long cM;
-              
-const int rI = 5000,
-          yI = 1000;
+const int BUTTON = A1,
+          LDR_PIN = A0;
 
-const long mC = 1,
-           pM = 0;
+
+const int IR_SENSOR = A2;
+
+int ldrValue;
+
+unsigned long currentTime;
+
+bool armTurned = false;
+
+long multiplier = 1;
+
+long double loopTimer = 0;
 
 //-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-/*
-*  This method turns on the red LED while simultaneously turning off the yellow LED since these operations are immediately consecutive to eachother. 
-*/
-void onR (int y, int r){
-  digitalWrite (y, LOW);
-  digitalWrite (r, HIGH);
+int getRED_LIGHT_2 () {
+    return digitalRead(RED_LIGHT_2);
 }
 
-/*
-*  This method turns on the yellow LED while simultaneously turning off the green LED since these operations are immediately consecutive to eachother. 
-*/
-void onY(int g, int y){
-  digitalWrite (g, LOW);
-  digitalWrite (y, HIGH);
+int getBUTTON () {
+    return digitalRead(BUTTON);
 }
 
-/*
-*  This method turns on the green LED while simultaneously turning off the red LED since these operations are immediately consecutive to eachother. 
-*/
-void onG(int r, int g){
-  digitalWrite (r, LOW);
-  digitalWrite (g, HIGH);
-  
+int getIR() {
+    return analogRead(IR_SENSOR);
+}
+
+int getLDR() {
+    return analogRead(LDR_PIN);
+}
+
+void on(int LED) {
+    digitalWrite (LED, HIGH);
+}
+
+void off(int LED) {
+    digitalWrite(LED, LOW);
+}
+
+void turnArm(bool direction) {
+    ARM_SERVO.write(90 * direction);
+}
+
+void switchGreen(int red, int green) {
+    off(red);
+    on(green);
+}
+
+void switchYellow(int green, int yellow) {
+    off(green);
+    on(yellow);
+}
+
+void switchRed(int yellow, int red) {
+    off(yellow);
+    on(red);
 }
 
 //-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -57,54 +90,114 @@ void onG(int r, int g){
 /*
 *  This method initializes all compoenents of the circuit.
 */
-void setup(){
-  pinMode (RL1, OUTPUT);
-  pinMode (YL1, OUTPUT);
-  pinMode (GL1, OUTPUT);
-  
-  pinMode (RL3, OUTPUT);
-  pinMode (YL3, OUTPUT);
-  pinMode (GL3, OUTPUT);
-  
-  pinMode (PL1, OUTPUT); 
-  Serial.begin (9600);
+void setup() {
+    pinMode (RED_LIGHT_1, OUTPUT);
+    pinMode (YELLOW_LIGHT_1, OUTPUT);
+    pinMode (GREEN_LIGHT_1, OUTPUT);
+
+    pinMode (RED_LIGHT_2, OUTPUT);
+    pinMode (YELLOW_LIGHT_2, OUTPUT);
+    pinMode (GREEN_LIGHT_2, OUTPUT);
+
+    pinMode (PEDESTRIAN_LIGHT_RED, OUTPUT);
+    pinMode (PEDESTRIAN_LIGHT_GREEN, OUTPUT);
+
+    pinMode (STREET_LIGHT, OUTPUT);
+
+
+    pinMode(LDR_PIN, INPUT);
+
+    pinMode (BUTTON, INPUT);
+    pinMode (BUTTON_OUTPUT, OUTPUT);
+    digitalWrite (BUTTON_OUTPUT, HIGH);
+
+    pinMode(IR_SENSOR, INPUT);
+
+    ARM_SERVO.attach(6);
+
+    Serial.begin (9600);
 }
 
 /*
 *  This method is the active loop of the system.
 */
-void loop (){
-  cM = millis();  
+void loop () {
+    currentTime = millis();
+    int timeTurned = 0;
+    ldrValue = getLDR();
 
-  if (cM >= 1000 * mC){
-    pM++;
-    mC++;
-  }
-  
-  if(pM  > 11){
-      pM = 0;
-  }
-  
-  if (pM >= 0 && pM < 6){
-    if (pM < 5){
-      onG(RL1, GL1);
+
+
+    Serial.println(currentTime - timeTurned);
+
+    //Turns on the street light
+    if(ldrValue < 70) {
+        on(STREET_LIGHT);
+    } else {
+        off(STREET_LIGHT);
+    }
+
+    //Increments seconds and counter
+    if (currentTime >= 20 * multiplier) {
+        loopTimer++;
+        multiplier++;
+    }
+    if (getIR() <= 5 && armTurned == false) {
+        turnArm(true);
+        armTurned = true;
+        timeTurned = loopTimer;
+    }
+    if (getIR() > 5 && armTurned == true) {
+        turnArm(false);
+        armTurned = false;
     }
     
-    if(pM == 5){
-      onY (GL1, YL1);
+    if(loopTimer  > 600) {
+        loopTimer = 0;
     }
-    onR (YL3, RL3);
-  }
 
-  if(pM >= 6 && pM < 12){
-    onR(YL1, RL1);
-    if (pM < 11){
-      onG (RL3, GL3);
+    if (getBUTTON() == HIGH && getRED_LIGHT_2() == HIGH) {
+        loopTimer += (300-loopTimer)/1000;
     }
-    if(pM == 11){
-      onY(GL3, YL3);  
-   }
-    
- }
-  
+
+    if (loopTimer >= 0 && loopTimer < 300) {
+
+        if (loopTimer < 250) {
+            switchGreen(RED_LIGHT_1, GREEN_LIGHT_1);
+            off(PEDESTRIAN_LIGHT_GREEN);
+            on(PEDESTRIAN_LIGHT_RED);
+        }
+        if(loopTimer >= 250) {
+            switchYellow(GREEN_LIGHT_1, YELLOW_LIGHT_1);
+        }
+
+        switchRed(YELLOW_LIGHT_2, RED_LIGHT_2);
+
+    }
+    if(loopTimer >= 300 && loopTimer < 600) {
+
+        if (loopTimer < 550) {
+            switchGreen (RED_LIGHT_2, GREEN_LIGHT_2);
+
+        }
+        if(loopTimer < 450) {
+            off(PEDESTRIAN_LIGHT_RED);
+            on(PEDESTRIAN_LIGHT_GREEN);
+        }
+        if(loopTimer >= 550) {
+            switchYellow(GREEN_LIGHT_2, YELLOW_LIGHT_2);
+        }
+
+        switchRed(YELLOW_LIGHT_1, RED_LIGHT_1);
+
+    }
+    if (loopTimer >=450 && loopTimer <600) {
+        off(PEDESTRIAN_LIGHT_GREEN);
+        if ((int)loopTimer%10 == 0) {
+            on(PEDESTRIAN_LIGHT_RED);
+        } else {
+            off(PEDESTRIAN_LIGHT_RED);
+        }
+    }
+}
 
