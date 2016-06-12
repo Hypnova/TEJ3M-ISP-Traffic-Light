@@ -70,8 +70,8 @@ void off(int LED) {
 }
 
 void turnArm(bool direction) {
-  while (90 * direction)
-    ARM_SERVO.write(90 * direction);
+  while (getArm() != 90 * direction)
+    ARM_SERVO.write(getArm()+(direction)?1:-1);
 }
 
 void switchGreen(int red, int green) {
