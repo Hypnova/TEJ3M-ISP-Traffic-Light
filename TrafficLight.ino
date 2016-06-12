@@ -1,4 +1,3 @@
-
 /*
 * ISP FINAL CODE
 * June 2, 2016.
@@ -31,7 +30,7 @@ const int BUTTON = A1,
 
 const int IR_SENSOR = A2;
 
-int ldrValue;
+int ldrValue, armPOS = 0;
 
 unsigned long currentTime, timeTurned;
 
@@ -70,7 +69,6 @@ void off(int LED) {
 }
 
 void turnArm(bool direction) {
-  while (90 * direction)
     ARM_SERVO.write(90 * direction);
 }
 
@@ -126,12 +124,13 @@ void setup() {
 *  This method is the active loop of the system.
 */
 void loop () {
+
     currentTime = millis();
     ldrValue = getLDR();
 
 
 
-    Serial.println(getArm());
+   Serial.println(analogRead(BUTTON));
 
     //Turns on the street light
     if(ldrValue < 70) {
@@ -145,19 +144,25 @@ void loop () {
         loopTimer++;
         multiplier++;
     } 
-    if (getArm() == 0 && getIR() < 2 ){
+    
+    if( getIR()<2 ){
+      armPOS++;
+    }
+    
+    if (getArm() == 0 && getIR() < 2 && armPOS >= 20 ){
       turnArm(true);
       timeTurned = currentTime;
+      armPOS = 0;
     }
-    else if (getIR() >= 2 && currentTime - timeTurned >= 3000){
-      turnArm(false);
+    if (getIR() >= 2 && currentTime - timeTurned >= 3000){
+        turnArm(false);p      
     }
     
     if(loopTimer  > 600) {
         loopTimer = 0;
     }
     if (getBUTTON() == HIGH && getRED_LIGHT_2() == HIGH) {
-        loopTimer += (300-loopTimer)/250;
+        loopTimer += (300-loopTimer)/50;
     }
 
     if (loopTimer >= 0 && loopTimer < 300) {
@@ -174,6 +179,7 @@ void loop () {
         switchRed(YELLOW_LIGHT_2, RED_LIGHT_2);
 
     }
+    
     if(loopTimer >= 300 && loopTimer < 600) {
 
         if (loopTimer < 550) {
@@ -189,8 +195,8 @@ void loop () {
         }
 
         switchRed(YELLOW_LIGHT_1, RED_LIGHT_1);
-
     }
+    
     if (loopTimer >=450 && loopTimer <600) {
         off(PEDESTRIAN_LIGHT_GREEN);
         if ((int)loopTimer%10 == 0) {
@@ -200,4 +206,3 @@ void loop () {
         }
     }
 }
-
