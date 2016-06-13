@@ -155,7 +155,7 @@ void loop () {
       armPOS = 0;
     }
     if (getIR() >= 2 && currentTime - timeTurned >= 3000){
-        turnArm(false);p      
+        turnArm(false);    
     }
     
     if(loopTimer  > 600) {
